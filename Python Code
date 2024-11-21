@@ -1,3 +1,7 @@
+# MAKE SURE THIS CODE IS IN NOTE PAD ON WINDOWS #
+------------------------------------------------------------------------------------------
+
+
 # Check if the "Installers" directory exists on the flash drive
 $flashDrivePath = "$PSScriptRoot\Installers"
 
