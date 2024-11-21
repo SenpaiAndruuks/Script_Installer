@@ -1,0 +1,89 @@
+# Check if the "Installers" directory exists on the flash drive
+$flashDrivePath = "$PSScriptRoot\Installers"
+
+if (-Not (Test-Path $flashDrivePath)) {
+    Write-Host "Installers directory not found on the flash drive. Please create it and put the installer files there."
+    exit
+}
+
+# Get all .exe files from the Installers directory
+$installers = Get-ChildItem -Path $flashDrivePath -Filter *.exe
+
+# Check if there are any .exe files to install
+if ($installers.Count -eq 0) {
+    Write-Host "No .exe files found in the Installers directory."
+    exit
+}
+
+# Display available installers to the user
+Write-Host "Available installers:"
+$counter = 1
+$installerList = @()
+foreach ($installer in $installers) {
+    Write-Host "$counter. $($installer.Name)"
+    $installerList += $installer
+    $counter++
+}
+
+# Ask the user which installer(s) they want to install
+$selectedInstallers = Read-Host "Enter the number(s) of the installer(s) you want to install (e.g., 1,2,3)"
+$selectedInstallers = $selectedInstallers -split "," | ForEach-Object { $_.Trim() }
+
+# Loop through selected installers and install each
+foreach ($selection in $selectedInstallers) {
+    if ($selection -match '^\d+$') {
+        $index = [int]$selection - 1
+        if ($index -lt 0 -or $index -ge $installerList.Count) {
+            Write-Host "Invalid selection: $selection"
+            continue
+        }
+        
+        $installer = $installerList[$index]
+        $installerPath = $installer.FullName
+        Write-Host "Installing $($installer.Name)..."
+
+        # Check for Chrome specifically
+        if ($installer.Name -like "ChromeSetup.exe") {
+            # Chrome-specific silent installation
+            Write-Host "Detected Chrome installer. Installing Chrome..."
+            Start-Process -FilePath $installerPath -ArgumentList "/silent", "/install" -Wait -NoNewWindow
+        }
+        # Check for 7-Zip specifically
+        elseif ($installer.Name -like "7z*.exe") {
+            # 7-Zip silent installation
+            Write-Host "Detected 7-Zip installer. Installing 7-Zip..."
+            Start-Process -FilePath $installerPath -ArgumentList "/S" -Wait -NoNewWindow
+        }
+        # Check for Steam specifically
+        elseif ($installer.Name -like "SteamSetup.exe") {
+            # Steam silent installation
+            Write-Host "Detected Steam installer. Installing Steam..."
+            Start-Process -FilePath $installerPath -ArgumentList "/S" -Wait -NoNewWindow
+        }
+        # Check for Discord specifically
+        elseif ($installer.Name -like "DiscordSetup.exe") {
+            # Discord silent installation
+            Write-Host "Detected Discord installer. Installing Discord..."
+            Start-Process -FilePath $installerPath -ArgumentList "--quiet" -Wait -NoNewWindow
+        }
+        else {
+            try {
+                # Silent installation with common flags /S or /quiet
+                Start-Process -FilePath $installerPath -ArgumentList "/S", "/quiet", "/norestart" -Wait -NoNewWindow
+                
+                # Check for errors
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host "$($installer.Name) installed successfully."
+                } else {
+                    Write-Host "Error installing $($installer.Name). Exit code: $LASTEXITCODE"
+                }
+            } catch {
+                Write-Host "Failed to start installation of $($installer.Name): $_"
+            }
+        }
+    } else {
+        Write-Host "Invalid input. Please enter only numbers."
+    }
+}
+
+Write-Host "Selected programs processed."
